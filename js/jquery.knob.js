@@ -111,6 +111,7 @@
                     inline : false,
                     step : this.$.data('step') || 1,
                     rotation: this.$.data('rotation'),
+                    handleImg: this.$.data('handleimg') || null,
 
                     // Hooks
                     draw : null, // function () {}
@@ -190,6 +191,15 @@
             this.$.wrap(this.$div).before(this.$c);
             this.$div = this.$.parent();
 
+            if (this.o.handleImg) {
+                this.$handleImg = new Image();
+                this.$handleImg.onload = function() {
+                    s._carve();
+                    s._draw();
+                }
+                this.$handleImg.src = this.o.handleImg;
+            }
+
             if (typeof G_vmlCanvasManager !== 'undefined') {
               G_vmlCanvasManager.initElement(this.$c[0]);
             }
@@ -247,7 +257,10 @@
             this.isInit = true;
 
             this.$.val(this.o.format(this.v));
-            this._draw();
+
+            if (!this.o.handleImg) {
+                this._draw();
+            }
 
             return this;
         };
@@ -277,9 +290,10 @@
             });
 
             // finalize canvas with computed width
+            var heightAdjustment = (this.$handleImg) ? (this.$handleImg.height / 2) : 0;
             this.$c.attr({
                 width: this.w,
-                height: this.h
+                height: this.h + heightAdjustment
             });
 
             // scaling
@@ -287,7 +301,7 @@
                 this.$c[0].width = this.$c[0].width * this.scale;
                 this.$c[0].height = this.$c[0].height * this.scale;
                 this.$c.width(this.w);
-                this.$c.height(this.h);
+                this.$c.height(this.h + heightAdjustment);
             }
 
             return this;
@@ -768,10 +782,29 @@
                 c.strokeStyle = r ? this.o.fgColor : this.fgColor ;
                 c.arc(this.xy, this.xy, this.radius, a.s, a.e, a.d);
             c.stroke();
+
+            if (this.o.handleImg) {
+                var xyCoords = this._convertToXYCoords(this.xy, this.radius, a.s, a.e), // Use maths to convert numbers to different numbers in a mathy way. 
+                    scale = window.devicePixelRatio || 1; // Need to use this or on high density devices (most mobile devices) the image is tiny. 
+
+                c.drawImage(
+                    this.$handleImg, // image object
+                    xyCoords.x - (this.$handleImg.width / 2) * scale, // x coordinate
+                    xyCoords.y - (this.$handleImg.height / 2) * scale, // y coordinate
+                    this.$handleImg.width * scale, // x scale
+                    this.$handleImg.height * scale); // y scale
+            }
         };
 
         this.cancel = function () {
             this.val(this.v);
+        };
+
+        this._convertToXYCoords = function(origin, radius, startAngle, endAngle) {
+            return {
+                x: origin + radius * Math.cos(startAngle),
+                y: origin + radius * Math.sin(endAngle)
+            }
         };
     };
 
